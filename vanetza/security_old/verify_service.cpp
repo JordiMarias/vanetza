@@ -17,42 +17,12 @@ namespace security
 namespace
 {
 
-// bool check_generation_time(const SecuredMessageV2& message, Clock::time_point now)
-// {
-//     using namespace std::chrono;
-
-//     bool valid = false;
-//     const Time64* generation_time = message.header_field<HeaderFieldType::Generation_Time>();
-//     if (generation_time) {
-//         // Values are picked from C2C-CC Basic System Profile v1.1.0, see RS_BSP_168
-//         static const auto generation_time_future = milliseconds(40);
-//         static const Clock::duration generation_time_past_default = minutes(10);
-//         static const Clock::duration generation_time_past_ca = seconds(2);
-//         auto generation_time_past = generation_time_past_default;
-
-//         const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
-//         if (its_aid && aid::CA == *its_aid) {
-//             generation_time_past = generation_time_past_ca;
-//         }
-
-//         if (*generation_time > convert_time64(now + generation_time_future)) {
-//             valid = false;
-//         } else if (*generation_time < convert_time64(now - generation_time_past)) {
-//             valid = false;
-//         } else {
-//             valid = true;
-//         }
-//     }
-
-//     return valid;
-// }
-
-bool check_generation_time(const SecuredMessageV3& message, Clock::time_point now)
+bool check_generation_time(const SecuredMessageV2& message, Clock::time_point now)
 {
     using namespace std::chrono;
 
     bool valid = false;
-    const Time64* generation_time = message.get_generation_time();
+    const Time64* generation_time = message.header_field<HeaderFieldType::Generation_Time>();
     if (generation_time) {
         // Values are picked from C2C-CC Basic System Profile v1.1.0, see RS_BSP_168
         static const auto generation_time_future = milliseconds(40);
@@ -60,9 +30,8 @@ bool check_generation_time(const SecuredMessageV3& message, Clock::time_point no
         static const Clock::duration generation_time_past_ca = seconds(2);
         auto generation_time_past = generation_time_past_default;
 
-        //const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
-        const Psid_t its_aid = message.get_psid();
-        if (its_aid && aid::CA == its_aid) {
+        const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
+        if (its_aid && aid::CA == *its_aid) {
             generation_time_past = generation_time_past_ca;
         }
 
@@ -78,38 +47,14 @@ bool check_generation_time(const SecuredMessageV3& message, Clock::time_point no
     return valid;
 }
 
-
-
-// bool check_generation_location(const SecuredMessageV2& message, const Certificate& cert)
-// {
-//     const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
-//     if (its_aid && aid::CA == *its_aid) {
-//         return true; // no check required for CAMs, field not even allowed
-//     }
-
-//     const ThreeDLocation* generation_location = message.header_field<HeaderFieldType::Generation_Location>();
-//     if (generation_location) {
-//         auto region = cert.get_restriction<ValidityRestrictionType::Region>();
-
-//         if (!region || get_type(*region) == RegionType::None) {
-//             return true;
-//         }
-
-//         return is_within(TwoDLocation(*generation_location), *region);
-//     }
-
-//     return false;
-// }
-
 bool check_generation_location(const SecuredMessageV2& message, const Certificate& cert)
 {
-    //const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
-    const Psid_t its_aid = message.get_psid();
-    if (its_aid && aid::CA == its_aid) {
+    const IntX* its_aid = message.header_field<HeaderFieldType::Its_Aid>();
+    if (its_aid && aid::CA == *its_aid) {
         return true; // no check required for CAMs, field not even allowed
     }
-    ThreeDLocation_t temp_generation_location = message.get_generation_location();
-    const ThreeDLocation* generation_location = new ThreeDLocation(temp_generation_location.latitude, temp_generation_location.longitude, temp_generation_location.elevation);
+
+    const ThreeDLocation* generation_location = message.header_field<HeaderFieldType::Generation_Location>();
     if (generation_location) {
         auto region = cert.get_restriction<ValidityRestrictionType::Region>();
 
